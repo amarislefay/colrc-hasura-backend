@@ -3,48 +3,53 @@ const textFileMetaDatafile = require('./data/metadata_tables')
 const audioSetMetaDatafile = require('./data/metadata_audio')
 const express = require('express');
 const app = express();
+const assert = require('assert');
 // store config variables in dotenv
 require('dotenv').config();
 // ORM (Object-Relational Mapper library)
 const Sequelize = require('sequelize');
 
-//****** Set up default mysql connection START ******
-// const mysql = require('mysql2');
-// var connection = mysql.createConnection({
-//   host: process.env.DB_HOST,
-//   user: process.env.DB_USERNAME,
-//   password: process.env.DB_PASSWORD,
-//   database: process.env.DB_NAME,
-//   port: process.env.DB_PORT
-// })
-// connection.connect(function(err) {
-//   if (err) throw err
-//   console.log('You are now connected...')
-// });
-// ****** Set up default mysql connection END ****** //
-
-//
-// Test direct connection to the database
-//
-// try {
-//   connection.query('SELECT * FROM users', (err,rows) => {
-//     if(err) throw err;
-//
-//     console.log('Data received from Db:\n');
-//     console.log(rows);
-//   });
-// } catch(err) {
-//   console.log(err);
-// }
+/* const pg = require('pg');
+var client = new pg.Client({
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: 5432,
+  host: process.env.DB_HOST,
+  ssl: true
+}); 
+client.connect(err => {
+  if (err) {
+    console.error('connection error', err.stack)
+  } else {
+    console.log('connected')
+  }
+});
+const Query = require('pg').Query
+const query = new Query('select now()')
+const result = client.query(query)
+assert(query === result) // true
+query.on('row', row => {
+  console.log('row!', row) // { the time }
+})
+query.on('end', () => {
+  console.log('query done')
+})
+query.on('error', err => {
+  console.error(err.stack)
+}) */
 
 // ****** Set up default MYSQL connection START ****** //
-const sequelize = new Sequelize(
+ const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USERNAME,
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
     dialect: process.env.DB_DIALECT,
+    dialectOptions: {
+      ssl: true
+    },
     //operatorsAliases: false,
     pool: { max: 5, min: 0, acquire: 300000, idle: 10000 },
     define: {
@@ -58,50 +63,95 @@ const sequelize = new Sequelize(
 sequelize
 .authenticate()
 .then(() => {
-  console.log('connected to MYSQL- COLRC database');
+  console.log('connected to POSTGRES- COLRC database');
 })
 .catch(err => {
   console.error('Unable to connect to the database:', err);
 });
-// ****** Set up default MYSQL connection END ****** //
+// ****** Set up default POSTGRES connection END ****** //
 
 // first provide all the fundamental types
-const User = sequelize.define('user', {
-  first: { type: Sequelize.STRING },
-  last: { type: Sequelize.STRING },
-  username: { type: Sequelize.STRING },
-  email: { type: Sequelize.STRING, unique: true },
-  password: { type: Sequelize.STRING },
-  roles: { type: Sequelize.STRING }
+const User = sequelize.define('users', {
+  name: { type: Sequelize.STRING },
+  created_at: { type: Sequelize.DATE },
+  last_seen: { type: Sequelize.DATE }
 },
 {
+  timestamps: false,
   charset: 'utf8mb4',
   collate: 'utf8mb4_unicode_ci'
 });
 
-const Root = sequelize.define('root', {
-  root: { type: Sequelize.STRING },
+// Find all users
+async function getUsers() {
+  const users = await User.findAll();
+  // const users = await User.findAll({
+  //   attributes: ['name', 'last_seen']
+  // });
+  console.log(users.every(user => user instanceof User)); // true
+  console.log("All users:", JSON.stringify(users, null, 2));
+}
+
+getUsers();
+
+const Root = sequelize.define('roots', {
+  root: { type: Sequelize.TEXT },
   number: { type: Sequelize.INTEGER },
-  sense: {type: Sequelize.STRING},
-  salish: { type: Sequelize.STRING },
-  nicodemus: { type: Sequelize.STRING },
-  symbol: {type: Sequelize.STRING},
-  english: { type: Sequelize.STRING },
-  grammar: { type: Sequelize.STRING},
-  crossref: { type: Sequelize.STRING},
-  variant: { type: Sequelize.STRING},
-  cognate: { type: Sequelize.STRING},
-  editnote: { type: Sequelize.STRING },
-  active: { type: Sequelize.STRING(1) },
-  prevId: { type: Sequelize.INTEGER },
-  userId: { type: Sequelize.STRING }
+  sense: {type: Sequelize.TEXT},
+  salish: { type: Sequelize.TEXT },
+  nicodemus: { type: Sequelize.TEXT },
+  symbol: {type: Sequelize.TEXT },
+  english: { type: Sequelize.TEXT },
+  grammar: { type: Sequelize.TEXT },
+  crossref: { type: Sequelize.TEXT },
+  variant: { type: Sequelize.TEXT },
+  cognate: { type: Sequelize.TEXT },
+  edit_note: { type: Sequelize.TEXT },
+  active: { type: Sequelize.TEXT },
+  prev_id: { type: Sequelize.INTEGER },
+  user_id: { type: Sequelize.TEXT }
 },
 {
+  timestamps: false,
   charset: 'utf8mb4',
   collate: 'utf8mb4_unicode_ci'
 });
 
-const Affix = sequelize.define('affix', {
+// Find all roots
+async function getRoots() {
+  const roots = await Root.findAll();
+  // const roots = await Roots.findAll({
+  //   attributes: ['salish', 'nicodemus']
+  // });
+  console.log(roots.every(root => root instanceof Root)); // true
+  console.log("All roots:", JSON.stringify(roots, null, 2));
+}
+
+getRoots();
+
+async function createRoot() {
+  await Root.create({
+    root: "happy",
+    number: parseInt("123"),
+    sense: "days",
+    salish: "are",
+    nicodemus: "here",
+    symbol: "again!",
+    english: "Now is the time",
+    grammar: "for",
+    crossref: "all",
+    variant: "good",
+    cognate: "people",
+    edit_note: "p̓, t̕, t̕ᶿ, c̕, ƛ̓, č̕, k̓, k̓ʷ, q̓, q̓ʷ. p, t, tᶿ, c̣, c, ƛ, č, k, kʷ, q, qʷ, ʔ. b, d, ǰ, g, gʷ, ʡ. θ, ṣ, s, ɬ, š, x, xʷ, x̣, x̣ʷ, h. x̌, x̌ʷ. z̓. m̓, n̓, r̕, l̕, y̓, ɣ̓, ŋ̓ ",
+    active: 'Y',
+    prev_id: Sequelize.NULL,
+    user_id: "google-oauth2|103199442608420222208"
+  })
+}
+
+createRoot();
+ 
+/* const Affix = sequelize.define('affix', {
   type: { type: Sequelize.STRING },
   salish: { type: Sequelize.STRING },
   nicodemus: { type: Sequelize.STRING },
@@ -847,3 +897,4 @@ makeTables();
 //makeElicitationfileTable();
 //makeMedia();
 //makeUsersTable()
+ */

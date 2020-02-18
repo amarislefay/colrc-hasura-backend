@@ -119,7 +119,13 @@ const Root = sequelize.define('roots', {
 
 // Find all roots
 async function getRoots() {
-  const roots = await Root.findAll();
+  const roots = await Root.findAll({
+    order: [
+        ['root', 'ASC']
+    ],
+    attributes: ['root', 'salish', 'nicodemus'],
+    limit: 100
+});
   // const roots = await Roots.findAll({
   //   attributes: ['salish', 'nicodemus']
   // });
@@ -127,29 +133,42 @@ async function getRoots() {
   console.log("All roots:", JSON.stringify(roots, null, 2));
 }
 
-getRoots();
-
-async function createRoot() {
-  await Root.create({
-    root: "happy",
-    number: parseInt("123"),
-    sense: "days",
-    salish: "are",
-    nicodemus: "here",
-    symbol: "again!",
-    english: "Now is the time",
-    grammar: "for",
-    crossref: "all",
-    variant: "good",
-    cognate: "people",
-    edit_note: "p̓, t̕, t̕ᶿ, c̕, ƛ̓, č̕, k̓, k̓ʷ, q̓, q̓ʷ. p, t, tᶿ, c̣, c, ƛ, č, k, kʷ, q, qʷ, ʔ. b, d, ǰ, g, gʷ, ʡ. θ, ṣ, s, ɬ, š, x, xʷ, x̣, x̣ʷ, h. x̌, x̌ʷ. z̓. m̓, n̓, r̕, l̕, y̓, ɣ̓, ŋ̓ ",
-    active: 'Y',
-    prev_id: Sequelize.NULL,
-    user_id: "google-oauth2|103199442608420222208"
-  })
+// next, build the Root Dictionary, Affix List and Stem List from files in the 'data' directory
+async function makeRootTable(){
+  //await Root.sync({force: true});
+  var fs = require('fs');
+  var contents = fs.readFileSync('data/fixed_entries_trim.txt', 'utf8');
+  var rows = contents.split("\n");
+  for (row of rows) {
+    row = row.replace(/(\r)/gm, "");
+    columns = row.split(":::");
+    console.log(columns)
+    if (columns[5]) {
+      await Root.create({
+        root: columns[2],
+        number: columns[3] ? parseInt(columns[3]) : 0,
+        sense: columns[4],
+        salish: columns[5],
+        nicodemus: columns[6],
+        symbol: columns[7],
+        english: columns[8],
+        grammar: columns[9],
+        crossref: columns[10],
+        variant: columns[11],
+        cognate: columns[12],
+        edit_note: columns[13],
+        active: 'Y',
+        prev_id: Sequelize.NULL,
+        user_id: "auth0|5e4c1705b6ef8d0e9ccffd60"
+      })
+    }
+  }
+  console.log("I have a roots table");
 }
 
-createRoot();
+//makeRootTable();
+
+getRoots();
  
 /* const Affix = sequelize.define('affix', {
   type: { type: Sequelize.STRING },
